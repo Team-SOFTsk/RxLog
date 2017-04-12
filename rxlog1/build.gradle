@@ -1,5 +1,32 @@
 apply plugin: 'com.android.library'
 
+final LIBRARY_NAME = 'rxlog1'
+
+ext {
+    bintrayRepo = 'maven'
+    bintrayName = LIBRARY_NAME
+    bintrayOrg = ORGANIZATION_NAME
+
+    publishedGroupId = GROUP
+    libraryName = LIBRARY_NAME
+    artifact = 'rxlog1'
+
+    libraryDescription = 'RxLog library (for RxJava1)'
+
+    siteUrl = POM_SCM_URL
+    gitUrl = POM_SCM_CONNECTION
+
+    libraryVersion = VERSION_NAME
+
+    developerId = POM_DEVELOPER_ID
+    developerName = POM_DEVELOPER_NAME
+    developerEmail = POM_DEVELOPER_EMAIL
+
+    licenseName = POM_LICENCE_NAME
+    licenseUrl = POM_LICENCE_URL
+    allLicenses = ["Apache-2.0"]
+}
+
 android {
     compileSdkVersion 25
     buildToolsVersion "25.0.2"
@@ -25,3 +52,6 @@ dependencies {
     compile 'com.jakewharton.timber:timber:4.5.1'
     compile "io.reactivex:rxjava:1.2.9"
 }
+
+apply from: '../install.gradle'
+apply from: '../bintray.gradle'
