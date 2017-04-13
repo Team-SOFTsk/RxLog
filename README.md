@@ -8,11 +8,40 @@ RxLog is a simple helper library to handle your RxJava logs. Supports both RxJav
 
 For RxJava2
 ```
-compile 'sk.teamsoft:rxlog:1.0.0'
+compile 'sk.teamsoft:rxlog:1.0.1'
 ```
 
 
 For RxJava1
 ```
-compile 'sk.teamsoft:rxlog1:1.0.0'
+compile 'sk.teamsoft:rxlog1:1.0.1'
 ```
+
+**For full lifecycle logging**
+```
+Observable.just(data)
+    .compose(RxLog("this will log all lifecycle events (subscribe/next/complete/error...) of this stream"))
+    .subscribe(...);
+```
+
+**For custom logging**
+```
+Observable.just(data)
+    .compose(RxLog("this will log only next and complete events", RxLog.LOG_NEXT_DATA | RxLog.LOG_COMPLETE))
+    .subscribe(...);
+```
+
+
+Available options for bitmask:
+- **LOG_NEXT_DATA**         - logs next event with data
+- **LOG_NEXT_EVENT**        - logs next event but without data (useful when data is too big to serialize)
+- **LOG_ERROR**             - logs error event
+- **LOG_COMPLETE**          - logs complete event
+- **LOG_SUBSCRIBE**         - logs subscribe event
+- **LOG_TERMINATE**         - logs terminate event
+- **LOG_DISPOSE**           - logs dispose event
+
+
+### Author
+Team-SOFT s.r.o.<br/>
+dusan@teamsoft.sk

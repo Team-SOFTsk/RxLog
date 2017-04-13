@@ -20,7 +20,8 @@ public final class RxLog {
     public static final int LOG_ERROR = 4;
     public static final int LOG_COMPLETE = 8;
     public static final int LOG_SUBSCRIBE = 16;
-    public static final int LOG_UNSUBSCRIBE = 32;
+    public static final int LOG_TERMINATE = 32;
+    public static final int LOG_DISPOSE = 64;
 
     public static <T> ObservableTransformer<T, T> log(final String msg, final int bitMask) {
         return new ObservableTransformer<T, T>() {
@@ -37,7 +38,7 @@ public final class RxLog {
                                 if ((bitMask & LOG_SUBSCRIBE) > 0) {
                                     tObservable.compose(logSubscribe(msg));
                                 }
-                                if ((bitMask & LOG_UNSUBSCRIBE) > 0) {
+                                if ((bitMask & LOG_TERMINATE) > 0) {
                                     tObservable.compose(logTerminate(msg));
                                 }
                                 if ((bitMask & LOG_ERROR) > 0) {
@@ -51,6 +52,9 @@ public final class RxLog {
                                 }
                                 if ((bitMask & LOG_NEXT_EVENT) > 0) {
                                     tObservable.compose(logNextEvent(msg));
+                                }
+                                if ((bitMask & LOG_DISPOSE) > 0) {
+                                    tObservable.compose(logDispose(msg));
                                 }
                                 return tObservable;
                             }
