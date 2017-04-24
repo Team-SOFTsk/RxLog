@@ -8,13 +8,13 @@ RxLog is a simple helper library to handle your RxJava logs. Supports both RxJav
 
 For RxJava2
 ```
-compile 'sk.teamsoft:rxlog:1.0.1'
+compile 'sk.teamsoft:rxlog:1.0.2'
 ```
 
 
 For RxJava1
 ```
-compile 'sk.teamsoft:rxlog1:1.0.1'
+compile 'sk.teamsoft:rxlog1:1.0.2'
 ```
 
 **For full lifecycle logging**
