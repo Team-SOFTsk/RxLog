@@ -1,4 +1,5 @@
 apply plugin: 'com.android.library'
+apply plugin: 'me.tatarka.retrolambda'
 
 final LIBRARY_NAME = 'rxlog'
 
@@ -46,12 +47,25 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
 }
 
 dependencies {
     compile 'com.jakewharton.timber:timber:4.5.1'
-    compile "io.reactivex.rxjava2:rxjava:2.0.8"
+    compile "io.reactivex.rxjava2:rxjava:2.0.9"
 }
 
 apply from: '../install.gradle'
 apply from: '../bintray.gradle'
+
+//make sure these environment variables are set in OS
+//it is important for retrolambda to setup environment variables
+retrolambda {
+    jdk System.getenv("JAVA8_HOME")
+    oldJdk System.getenv("JAVA7_HOME")
+    javaVersion JavaVersion.VERSION_1_7
+}

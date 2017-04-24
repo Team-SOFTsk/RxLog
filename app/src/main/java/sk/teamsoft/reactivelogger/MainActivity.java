@@ -6,6 +6,7 @@ import android.support.v7.app.AppCompatActivity;
 import java.util.concurrent.TimeUnit;
 
 import io.reactivex.Observable;
+import io.reactivex.Single;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.annotations.NonNull;
 import io.reactivex.disposables.CompositeDisposable;
@@ -39,6 +40,18 @@ public class MainActivity extends AppCompatActivity {
                         Timber.e("error %d", throwable.getMessage());
                     }
                 }));
+
+        Single.just("prd")
+                .compose(RxLog.<String>logSingle("ddd", RxLog.LOG_COMPLETE))
+                .subscribe(new Consumer<String>() {
+                    @Override public void accept(@NonNull String s) throws Exception {
+
+                    }
+                }, new Consumer<Throwable>() {
+                    @Override public void accept(@NonNull Throwable throwable) throws Exception {
+
+                    }
+                });
 
         /*compositeSubscription.add(rx.Observable.interval(700, TimeUnit.MILLISECONDS)
                 .compose(RxLog1.<Long>log("rx1:interval"))

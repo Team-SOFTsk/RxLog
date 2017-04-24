@@ -1,14 +1,13 @@
 package sk.teamsoft.rxlog1;
 
 import rx.Observable;
-import rx.functions.Action0;
-import rx.functions.Action1;
 import rx.functions.Func1;
 import timber.log.Timber;
 
 /**
  * @author Dusan Bartos
  */
+@SuppressWarnings({"unused", "WeakerAccess"})
 public final class RxLog1 {
 
     public static final int LOG_NEXT_DATA = 1;
@@ -19,39 +18,26 @@ public final class RxLog1 {
     public static final int LOG_UNSUBSCRIBE = 32;
 
     public static <T> Observable.Transformer<T, T> log(final String msg, final int bitMask) {
-        return new Observable.Transformer<T, T>() {
-            @Override public Observable<T> call(Observable<T> upstream) {
-                return upstream
-                        .map(new Func1<T, Observable<T>>() {
-                            @Override public Observable<T> call(T t) {
-                                return Observable.just(t);
-                            }
-                        })
-                        .flatMap(new Func1<Observable<T>, Observable<T>>() {
-                            @Override
-                            public Observable<T> call(Observable<T> tObservable) {
-                                if ((bitMask & LOG_SUBSCRIBE) > 0) {
-                                    tObservable.compose(logSubscribe(msg));
-                                }
-                                if ((bitMask & LOG_UNSUBSCRIBE) > 0) {
-                                    tObservable.compose(logTerminate(msg));
-                                }
-                                if ((bitMask & LOG_ERROR) > 0) {
-                                    tObservable.compose(logError(msg));
-                                }
-                                if ((bitMask & LOG_COMPLETE) > 0) {
-                                    tObservable.compose(logComplete(msg));
-                                }
-                                if ((bitMask & LOG_NEXT_DATA) > 0) {
-                                    tObservable.compose(logNext(msg));
-                                }
-                                if ((bitMask & LOG_NEXT_EVENT) > 0) {
-                                    tObservable.compose(logNextEvent(msg));
-                                }
-                                return tObservable;
-                            }
-                        });
+        return upstream -> {
+            if ((bitMask & LOG_SUBSCRIBE) > 0) {
+                upstream = upstream.compose(logSubscribe(msg));
             }
+            if ((bitMask & LOG_UNSUBSCRIBE) > 0) {
+                upstream = upstream.compose(logTerminate(msg));
+            }
+            if ((bitMask & LOG_ERROR) > 0) {
+                upstream = upstream.compose(logError(msg));
+            }
+            if ((bitMask & LOG_COMPLETE) > 0) {
+                upstream = upstream.compose(logComplete(msg));
+            }
+            if ((bitMask & LOG_NEXT_DATA) > 0) {
+                upstream = upstream.compose(logNext(msg));
+            }
+            if ((bitMask & LOG_NEXT_EVENT) > 0) {
+                upstream = upstream.compose(logNextEvent(msg));
+            }
+            return upstream;
         };
     }
 
@@ -62,13 +48,9 @@ public final class RxLog1 {
      * @return transformer
      */
     public static <T> Observable.Transformer<T, T> log(final String msg) {
-        return new Observable.Transformer<T, T>() {
-            @Override public Observable<T> call(Observable<T> upstream) {
-                return upstream
-                        .compose(RxLog1.<T>logAll(msg))
-                        .compose(RxLog1.<T>logNext(msg));
-            }
-        };
+        return upstream -> upstream
+                .compose(logAll(msg))
+                .compose(logNext(msg));
     }
 
     /**
@@ -80,115 +62,46 @@ public final class RxLog1 {
      * @return transformer
      */
     public static <T> Observable.Transformer<T, T> logLifecycle(final String msg) {
-        return new Observable.Transformer<T, T>() {
-            @Override public Observable<T> call(Observable<T> upstream) {
-                return upstream
-                        .compose(RxLog1.<T>logAll(msg))
-                        .compose(RxLog1.<T>logNextEvent(msg));
-            }
-        };
+        return upstream -> upstream
+                .compose(logAll(msg))
+                .compose(logNextEvent(msg));
     }
 
     private static <T> Observable.Transformer<T, T> logAll(final String msg) {
-        return new Observable.Transformer<T, T>() {
-            @Override public Observable<T> call(Observable<T> upstream) {
-                return upstream
-                        .compose(RxLog1.<T>logError(msg))
-                        .compose(RxLog1.<T>logComplete(msg))
-                        .compose(RxLog1.<T>logSubscribe(msg))
-                        .compose(RxLog1.<T>logTerminate(msg))
-                        .compose(RxLog1.<T>logUnsubscribe(msg));
-            }
-        };
+        return upstream -> upstream
+                .compose(logError(msg))
+                .compose(logComplete(msg))
+                .compose(logSubscribe(msg))
+                .compose(logTerminate(msg))
+                .compose(logUnsubscribe(msg));
     }
 
     private static <T> Observable.Transformer<T, T> logNext(final String msg) {
-        return new Observable.Transformer<T, T>() {
-            @Override public Observable<T> call(Observable<T> upstream) {
-                return upstream.doOnNext(new Action1<T>() {
-                    @Override public void call(T data) {
-                        Timber.d("[onNext] %s %s [Thread:%s]", msg, data, Thread.currentThread().getName());
-                    }
-                });
-            }
-        };
+        return upstream -> upstream.doOnNext(data -> Timber.d("[onNext] %s %s [Thread:%s]", msg, data, Thread.currentThread().getName()));
     }
 
     private static <T> Observable.Transformer<T, T> logNextEvent(final String msg) {
-        return new Observable.Transformer<T, T>() {
-            @Override public Observable<T> call(Observable<T> upstream) {
-                return upstream.doOnNext(new Action1<T>() {
-                    @Override public void call(T t) {
-                        Timber.d("[onNext] %s [Thread:%s]", msg, Thread.currentThread().getName());
-                    }
-                });
-            }
-        };
+        return upstream -> upstream.doOnNext(t -> Timber.d("[onNext] %s [Thread:%s]", msg, Thread.currentThread().getName()));
     }
 
     private static <T> Observable.Transformer<T, T> logError(final String msg) {
-        final Func1<Throwable, String> message = new Func1<Throwable, String>() {
-            @Override public String call(Throwable e) {
-                return e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
-            }
-        };
-
-        return new Observable.Transformer<T, T>() {
-            @Override public Observable<T> call(Observable<T> upstream) {
-                return upstream.doOnError(new Action1<Throwable>() {
-                    @Override public void call(Throwable e) {
-                        Timber.e("[onError] %s - %s", msg, message.call(e));
-                    }
-                });
-            }
-        };
+        final Func1<Throwable, String> message = e -> e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+        return upstream -> upstream.doOnError(e -> Timber.e("[onError] %s - %s", msg, message.call(e)));
     }
 
     private static <T> Observable.Transformer<T, T> logComplete(final String msg) {
-        return new Observable.Transformer<T, T>() {
-            @Override public Observable<T> call(Observable<T> upstream) {
-                return upstream.doOnCompleted(new Action0() {
-                    @Override public void call() {
-                        Timber.i("[onComplete] %s", msg);
-                    }
-                });
-            }
-        };
+        return upstream -> upstream.doOnCompleted(() -> Timber.i("[onComplete] %s", msg));
     }
 
     private static <T> Observable.Transformer<T, T> logSubscribe(final String msg) {
-        return new Observable.Transformer<T, T>() {
-            @Override public Observable<T> call(Observable<T> upstream) {
-                return upstream.doOnSubscribe(new Action0() {
-                    @Override public void call() {
-                        Timber.v("[subscribe] %s [Thread:%s]", msg, Thread.currentThread().getName());
-                    }
-                });
-            }
-        };
+        return upstream -> upstream.doOnSubscribe(() -> Timber.v("[subscribe] %s [Thread:%s]", msg, Thread.currentThread().getName()));
     }
 
     private static <T> Observable.Transformer<T, T> logTerminate(final String msg) {
-        return new Observable.Transformer<T, T>() {
-            @Override public Observable<T> call(Observable<T> upstream) {
-                return upstream.doOnTerminate(new Action0() {
-                    @Override public void call() {
-                        Timber.v("[terminate] %s", msg);
-                    }
-                });
-            }
-        };
+        return upstream -> upstream.doOnTerminate(() -> Timber.v("[terminate] %s", msg));
     }
 
     private static <T> Observable.Transformer<T, T> logUnsubscribe(final String msg) {
-        return new Observable.Transformer<T, T>() {
-            @Override public Observable<T> call(Observable<T> upstream) {
-                return upstream.doOnUnsubscribe(new Action0() {
-                    @Override public void call() {
-                        Timber.v("[unsubscribe] %s", msg);
-                    }
-                });
-            }
-        };
+        return upstream -> upstream.doOnUnsubscribe(() -> Timber.v("[unsubscribe] %s", msg));
     }
 }
