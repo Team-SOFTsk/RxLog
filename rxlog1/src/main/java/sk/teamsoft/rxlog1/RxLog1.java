@@ -1,6 +1,7 @@
 package sk.teamsoft.rxlog1;
 
 import rx.Observable;
+import rx.Single;
 import rx.functions.Func1;
 import timber.log.Timber;
 
@@ -16,6 +17,8 @@ public final class RxLog1 {
     public static final int LOG_COMPLETE = 8;
     public static final int LOG_SUBSCRIBE = 16;
     public static final int LOG_UNSUBSCRIBE = 32;
+
+    //region Observable
 
     public static <T> Observable.Transformer<T, T> log(final String msg, final int bitMask) {
         return upstream -> {
@@ -104,4 +107,59 @@ public final class RxLog1 {
     private static <T> Observable.Transformer<T, T> logUnsubscribe(final String msg) {
         return upstream -> upstream.doOnUnsubscribe(() -> Timber.v("[unsubscribe] %s", msg));
     }
+
+    //endregion
+
+    //region Single
+    public static <T> Single.Transformer<T, T> logSingle(final String msg, final int bitMask) {
+        return upstream -> {
+            if ((bitMask & LOG_SUBSCRIBE) > 0) {
+                upstream = upstream.compose(sLogSubscribe(msg));
+            }
+            if ((bitMask & LOG_ERROR) > 0) {
+                upstream = upstream.compose(sLogError(msg));
+            }
+            if ((bitMask & LOG_NEXT_DATA) > 0) {
+                upstream = upstream.compose(sLogNext(msg));
+            } else if ((bitMask & LOG_NEXT_EVENT) > 0) {
+                upstream = upstream.compose(sLogNextEvent(msg));
+            }
+            return upstream;
+        };
+    }
+
+    public static <T> Single.Transformer<T, T> logSingle(final String msg) {
+        return upstream -> upstream
+                .compose(sLogAll(msg))
+                .compose(sLogNext(msg));
+    }
+
+    private static <T> Single.Transformer<T, T> sLogAll(final String msg) {
+        return upstream -> upstream
+                .compose(sLogError(msg))
+                .compose(sLogSubscribe(msg))
+                .compose(sLogUnsubscribe(msg));
+    }
+
+    private static <T> Single.Transformer<T, T> sLogNext(final String msg) {
+        return upstream -> upstream.doOnSuccess(data -> Timber.d("[onNext] %s %s [Thread:%s]", msg, data, Thread.currentThread().getName()));
+    }
+
+    private static <T> Single.Transformer<T, T> sLogNextEvent(final String msg) {
+        return upstream -> upstream.doOnSuccess(t -> Timber.d("[onNext] %s [Thread:%s]", msg, Thread.currentThread().getName()));
+    }
+
+    private static <T> Single.Transformer<T, T> sLogError(final String msg) {
+        final Func1<Throwable, String> message = e -> e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+        return upstream -> upstream.doOnError(e -> Timber.e("[onError] %s - %s", msg, message.call(e)));
+    }
+
+    private static <T> Single.Transformer<T, T> sLogSubscribe(final String msg) {
+        return upstream -> upstream.doOnSubscribe(() -> Timber.v("[subscribe] %s [Thread:%s]", msg, Thread.currentThread().getName()));
+    }
+
+    private static <T> Single.Transformer<T, T> sLogUnsubscribe(final String msg) {
+        return upstream -> upstream.doOnUnsubscribe(() -> Timber.v("[unsubscribe] %s", msg));
+    }
+    //endregion
 }
